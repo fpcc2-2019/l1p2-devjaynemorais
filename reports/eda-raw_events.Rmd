@@ -1,0 +1,44 @@
+---
+title: "EDA do log de eventos"
+output: html_notebook
+---
+
+## O quê
+
+Como usamos dados derivados dos logs de eventos da wikimedia, aqui primeiro exploramos esses logs para entender como os eventos foram coletados, e para procurar características inesperadas. 
+
+```{r}
+library(tidyverse)
+library(lubridate)
+theme_set(theme_bw())
+```
+
+## Lendo os eventos
+
+```{r ETL}
+events = read_csv("https://github.com/wikimedia-research/Discovery-Hiring-Analyst-2016/raw/master/events_log.csv.gz")
+
+events = events %>% slice(1:5e4) # Útil para testar código em dados pequenos. Comente na hora de processá-los para valer.
+
+events = events %>% 
+    group_by(session_id) %>% 
+    arrange(timestamp) %>% 
+    mutate(search_index = cumsum(action == "searchResultPage"), # contador de buscas na sessão.
+           date = ymd_hms(timestamp))  %>% 
+    ungroup()
+```
+
+## No tempo
+
+
+```{r}
+events %>% 
+    mutate(date = round_date(date, unit = "day")) %>% 
+    count(date, group) %>% 
+    ggplot(aes(x = date, y = n, fill = group)) + 
+    geom_area()
+```
+
+## Por tipo
+
+## Etc.
