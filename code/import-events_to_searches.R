@@ -10,13 +10,16 @@ events = read_csv("https://github.com/wikimedia-research/Discovery-Hiring-Analys
 
 message("Transformando em dados por busca")
 
-events = events %>% 
-    group_by(session_id) %>% 
-    arrange(timestamp) %>% 
-    mutate(search_index = cumsum(action == "searchResultPage")) # contador para as buscas nessa sessão.
+events = events %>%
+    group_by(session_id) %>%
+    arrange(timestamp) %>%
+    mutate(
+        search_index = cumsum(action == "searchResultPage"), # para contar as buscas na sessão
+        session_length = difftime(ymd_hms(last(timestamp)), ymd_hms(first(timestamp)), units = "secs")
+    )
 
 searches = events %>% 
-    group_by(session_id, search_index) %>% 
+    group_by(session_id, search_index, session_length) %>% 
     arrange(timestamp) %>% 
     summarise(
         session_start_timestamp = first(timestamp),
