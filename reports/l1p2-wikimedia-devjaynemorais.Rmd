@@ -1,0 +1,93 @@
+---
+title: "l1p2-wikimedia"
+author: "devjaynemorais"
+date: "3 de maio de 2019"
+output: html_document
+---
+
+O objeto principal da análise são as buscas e a navegação depois da busca. Criamos esses dados a partir dos dados originais da wikimedia em `/data/search_data.csv`. 
+
+Aqui, exploramos esses dados. 
+
+    1. Qual é a nossa taxa de cliques geral diária? Como isso varia entre os grupos?
+
+     
+```{r setup}
+library(tidyverse)
+library(here)
+library(lubridate)
+theme_set(theme_bw())
+```
+
+```{r ETL}
+buscas = read_csv(here::here("data/search_data.csv"))
+glimpse(buscas)
+```
+
+
+```{r}
+buscas %>% 
+    ggplot(aes(x = results)) + 
+    geom_histogram(binwidth = 5) 
+```
+
+```{r}
+library(lubridate)
+
+buscas %>% 
+    ggplot(aes(x = "", y = num_clicks)) + 
+    geom_jitter()
+
+buscas %>% 
+    ggplot(aes(x = num_clicks, y = session_start_date)) + 
+    geom_jitter() 
+
+buscas %>% 
+    filter(num_clicks <= 5) %>% 
+    ggplot(aes(x = num_clicks)) + 
+    geom_density() 
+
+buscas %>% 
+    ggplot(aes(x = num_clicks)) + 
+    geom_density() 
+
+buscas %>% 
+    ggplot(aes(x = session_start_date)) + 
+    geom_density() 
+
+buscas %>% 
+    ggplot(aes(x = session_start_timestamp)) + 
+    geom_density() 
+
+# Por dia
+buscas %>% 
+    mutate(dia = floor_date(session_start_date, unit = "day")) %>% 
+    count(dia) %>% 
+    ggplot(aes(x = dia , y = n)) + 
+    geom_point()
+
+
+# Por horas
+buscas %>% 
+    mutate(dia = floor_date(session_start_date, unit = "hour")) %>% 
+    count(dia) %>% 
+    ggplot(aes(x = dia , y = n)) + 
+    geom_point()
+
+
+## Variação entre os grupos
+buscas %>% 
+    group_by(group) %>%
+    mutate(dia = floor_date(session_start_date, unit = "hour")) %>% 
+    count(dia) %>% 
+    ggplot(aes(x = dia , y = n, color = group)) + 
+    geom_line() +
+    geom_point()
+
+```
+
+
+    2. Quais resultados as pessoas tendem a tentar primeiro? Como isso muda no dia-a-dia?
+    3. Qual é a nossa taxa de resultados zero no geral? Como isso varia entre os grupos?
+    4. A duração da sessão é aproximadamente o tempo entre o primeiro e o último evento de uma sessão. Escolha uma variável do conjunto de dados e descreva sua relação com o tamanho da sessão. Visualize o relacionamento.
+    5. Resuma suas descobertas em um resumo executivo.
