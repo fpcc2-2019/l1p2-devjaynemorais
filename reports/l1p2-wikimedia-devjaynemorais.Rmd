@@ -9,7 +9,6 @@ O objeto principal da análise são as buscas e a navegação depois da busca. C
 
 Aqui, exploramos esses dados. 
 
-    1. Qual é a nossa taxa de cliques geral diária? Como isso varia entre os grupos?
 
      
 ```{r setup}
@@ -20,6 +19,8 @@ theme_set(theme_bw())
 ```
 
 ```{r ETL}
+
+options(scipen = 999)
 buscas = read_csv(here::here("data/search_data.csv"))
 glimpse(buscas)
 ```
@@ -28,7 +29,12 @@ glimpse(buscas)
 ```{r}
 buscas %>% 
     ggplot(aes(x = results)) + 
-    geom_histogram(binwidth = 5) 
+    geom_histogram(binwidth = 5) +
+    xlab("Resultados") +
+    ylab("Quantidade") +
+    scale_x_continuous(breaks = seq(from = 0, to = 1000, by = 10)) +
+    scale_y_continuous(breaks = seq(from = 0, to = 1000000, by = 5000)) +
+    theme(axis.text.x = element_text(color = "grey20", size = 8, angle = 90, hjust = .5, vjust = .5, face = "plain"))
 ```
 
 ```{r}
@@ -86,6 +92,36 @@ buscas %>%
 
 ```
 
+    1. Qual é a nossa taxa de cliques geral diária? Como isso varia entre os grupos?
+    *taxa de cliques: a proporção de sessões de pesquisa em que o usuário clicou em um dos resultados exibidos.
+
+```{r}
+#000216cf18ae1ab1 -> 6
+#002b97995ca9ce77
+
+# Agrupando dados por sessão
+
+# qt_searchs: Quantidade de buscas realizadas em uma mesma sessão.
+# qt_clicks: (Soma) Quantidade de resultados da busca que foram clicados em uma mesma sessão.
+# qt_no_clicks: (Soma) Quantidade de buscas realizadas em uma mesma sessão em que não obtiveram cliques em seus resultados.
+
+cliques_por_busca = buscas %>% 
+    select(session_id, num_clicks, search_index) %>% 
+    group_by(session_id) %>%
+    summarise(qt_searchs = n(), qt_clicks = sum(num_clicks), qt_no_clicks = sum(num_clicks == 0))
+
+
+# Existem quantas sessões em que o usuário não clicou em pelo menos 1 resultado de busca? E quantas sessões em que não foram clicadas em nenhum resultado retornado?
+
+sumario_cliques_por_busca = cliques_por_busca %>%
+    summarise(total_qt_sessions = n(), 
+              total_qt_buscas = sum(qt_searchs), 
+              total_qt_sessions_click = count(subset(cliques_por_busca, qt_clicks != 0)), 
+              total_qt_sessions_no_click = count(subset(cliques_por_busca, qt_clicks == 0)))
+
+#, qt_sessions_click = sum(qt_clicks), qt_sessions_no_click = sum(qt_no_clicks)
+
+```
 
     2. Quais resultados as pessoas tendem a tentar primeiro? Como isso muda no dia-a-dia?
     3. Qual é a nossa taxa de resultados zero no geral? Como isso varia entre os grupos?
