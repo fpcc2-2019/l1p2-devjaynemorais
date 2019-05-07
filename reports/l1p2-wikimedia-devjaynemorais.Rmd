@@ -107,7 +107,8 @@ buscas %>%
     count(dia) %>% 
     ggplot(aes(x = dia , y = n, color = group)) + 
     geom_line() +
-    geom_point() 
+    geom_point() +
+    geom_smooth(aes(x = dia , y = taxa_clique), method = lm, se = FALSE)
 
 ```
 
@@ -201,6 +202,26 @@ cliques_por_busca_diaria = buscas %>%
 
 cliques_por_busca_diaria
 
+#Considerando count com condição
+cliques_por_busca_diaria = buscas %>% 
+    filter(!is.na(num_clicks)) %>%
+    select(session_id, num_clicks, search_index, session_start_date, group) %>% 
+    mutate(dia = floor_date(session_start_date, unit = "day")) %>% 
+    group_by(dia, group) %>%
+    summarise(qt_searchs = n(), 
+              qt_clicks = nrow(subset(cliques_por_busca_diaria, num_clicks != 0)),
+              taxa_clique = (qt_clicks/qt_searchs)*100,
+              qt_no_clicks = sum(num_clicks == 0)) %>%
+    ggplot(aes(x = dia , y = taxa_clique, fill = group)) +
+    geom_col(position = "dodge") +
+    geom_hline(aes(yintercept = mean(taxa_clique), linetype="Mean"), colour="#BB0000") +
+    geom_smooth(aes(x = dia , y = taxa_clique), method = lm, se = FALSE) +
+    geom_text(aes(x = dia, y = taxa_clique, label=paste(trunc(taxa_clique), "%")), vjust=1.6, color="black", size=3.5) +
+    labs(x = "Dias", y = "Taxa de cliques (%)", fill = "Grupos", title = "Taxa geral de cliques por dia e por grupo") +
+    scale_y_continuous(breaks = seq(from = 0, to = 1000, by = 2)) 
+
+cliques_por_busca_diaria
+
 
 ```
 
@@ -227,16 +248,18 @@ primeiros_cliques
     Normalmente, os resultados que são mais clicados apresentam-se nas primeiras posições da pesquisa.
 
 ```{r}
+# Usar percentil para ver o que as primeiras 25% costumam clicar, ver a minoria tambem
 primeiros_cliques = buscas %>% 
     filter(results > 0, !is.na(first_click), first_click <= 100) %>%
     mutate(dia = floor_date(session_start_date, unit = "day")) %>%
-    ggplot(aes(y = first_click, x = dia, fill = group)) + 
-    geom_jitter(alpha = .2) +
+    ggplot(aes(y = first_click, x = dia, color = group)) + 
+    geom_jitter(alpha = .8) +
     
     geom_rug(alpha = .2, color = "blue") + 
     #scale_y_log10() +
     labs(x = "Dia", y = "Proporção dos primeiros cliques", 
-         title = "Distribuição dos primeiros cliques dos usuários") 
+         title = "Distribuição dos primeiros cliques dos usuários")# +
+   # scale_x_date(breaks = primeiros_cliques$dia)
 
 primeiros_cliques
 
@@ -251,3 +274,7 @@ primeiros_cliques
 
 ## 4. A duração da sessão é aproximadamente o tempo entre o primeiro e o último evento de uma sessão. Escolha uma variável do conjunto de dados e descreva sua relação com o tamanho da sessão. Visualize o relacionamento.
 
+```{r}
+
+
+```
