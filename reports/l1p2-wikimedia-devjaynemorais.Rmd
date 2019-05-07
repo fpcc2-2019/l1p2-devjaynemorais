@@ -243,9 +243,99 @@ primeiros_cliques
 ```
     
 ## 3. Qual é a nossa taxa de resultados zero no geral? Como isso varia entre os grupos?
+    
+    Taxa de zero results (resultados zero): a proporção de pesquisas que retornaram nenhum resultado.
 
+    Inicialmente, vamos analisar a distribuição dos dados para um melhor entendimento.
+
+    
+```{r}   
+
+
+```
+
+    Para analisar a taxa de clique diária, vamos considerar a razão entre a quantidade dos resultados que retornaram zero e todos os resultados retornados pela pesquisa.
+    
 ```{r}
 
+taxa_resultados_zero = buscas %>% 
+    select(session_id, num_clicks, search_index, session_start_date, group, results) %>% 
+    mutate(dia = floor_date(session_start_date, unit = "day")) %>% 
+    group_by(group) %>%
+    summarise(zero = sum(results == 0), total = n()) %>% 
+    mutate(taxa_zero = zero/total * 100)# %>%
+   # ggplot(aes(group, taxa_zero)) +
+    #geom_bar(aes(fill = group), stat = "identity", position = "dodge")
+taxa_resultados_zero
+
+taxa_resultados_zero = buscas %>% 
+    select(session_id, num_clicks, search_index, session_start_date, group, results) %>% 
+    mutate(dia = floor_date(session_start_date, unit = "day")) %>% 
+    group_by(dia) %>%
+    summarise(zero = sum(results == 0), total = n()) %>% 
+    mutate(taxa_zero = zero/total * 100) %>% 
+    ggplot(aes(y = taxa_zero, x = dia)) + 
+    geom_col(position = "dodge") +
+    geom_rug(alpha = .2, color = "red") + 
+    geom_hline(aes(yintercept = mean(taxa_zero), linetype="Mean"), colour="#BB0000") +
+    geom_text(aes(x = dia, y = taxa_zero, label=paste(trunc(taxa_zero), "%")), vjust=1.6, color="white", size=3.5)
+    labs(x = "Dia", y = "Taxa de Resultados Zero (%)", 
+         title = "Distribuição taxa de resultados zero no geral") 
+   
+taxa_resultados_zero
+
+taxa_resultados_zero = buscas %>% 
+    select(session_id, num_clicks, search_index, session_start_date, group, results) %>% 
+   # mutate(dia = floor_date(session_start_date, unit = "day")) %>% 
+    group_by(group) %>%
+    summarise(zero = sum(results == 0), total = n()) %>% 
+    mutate(taxa_zero = zero/total * 100) %>% 
+    ggplot(aes(y = taxa_zero, x = group, fill = group)) + 
+    geom_col(position = "dodge") +
+    geom_rug(alpha = .2, color = "red") + 
+    geom_hline(aes(yintercept = mean(taxa_zero), linetype="Mean"), colour="#BB0000") +
+    geom_text(aes(x = group, y = taxa_zero, label=paste(trunc(taxa_zero), "%")), vjust=1.6, color="white", size=3.5)
+    labs(x = "Dia", y = "Taxa de Resultados Zero (%)", 
+         title = "Distribuição taxa de resultados zero no geral") 
+   
+taxa_resultados_zero
+
+taxa_resultados_zero = buscas %>% 
+    select(session_id, num_clicks, search_index, session_start_date, group, results) %>% 
+    mutate(dia = floor_date(session_start_date, unit = "day")) %>% 
+    group_by(dia, group) %>%
+    summarise(zero = sum(results == 0), total = n()) %>% 
+    mutate(taxa_zero = zero/total * 100) %>% 
+    
+    ggplot(aes(y = taxa_zero, x = dia, fill = group)) + 
+    geom_col(position = "dodge") +
+    geom_rug(alpha = .2, color = "red") + 
+    geom_smooth(aes(x = dia , y = taxa_zero), method = lm, se = FALSE) +
+    geom_hline(aes(yintercept = mean(taxa_zero), linetype="Mean"), colour="#BB0000") +
+    geom_text(aes(x = dia, y = taxa_zero, label=paste(trunc(taxa_zero), "%")), vjust=1.6, color="black", size=3.5)
+    labs(x = "Dia", y = "Taxa de Resultados Zero (%)", 
+         title = "Distribuição taxa de resultados zero no geral") 
+   
+taxa_resultados_zero
+
+taxa_resultados_zero = buscas %>% 
+    select(session_id, num_clicks, search_index, session_start_date, group, results) %>% 
+    mutate(dia = floor_date(session_start_date, unit = "day")) %>% 
+    group_by(dia, group) %>%
+    summarise(zero = sum(results == 0), total = n()) %>% 
+    mutate(taxa_zero = zero/total * 100) %>% 
+    
+    ggplot(aes(y = taxa_zero, x = dia, color = group)) + 
+    geom_point() +
+    geom_line() +
+    geom_rug(alpha = .2, color = "red") + 
+    geom_hline(aes(yintercept = mean(taxa_zero), linetype="Mean"), colour="#BB0000") +
+    geom_smooth(aes(x = dia , y = taxa_zero), method = lm, se = FALSE) +
+   # geom_text(aes(x = dia, y = taxa_zero, label=paste(trunc(taxa_zero), "%")), vjust=1.6, color="black", size=3.5)
+    labs(x = "Dia", y = "Taxa de Resultados Zero (%)", 
+         title = "Distribuição taxa de resultados zero no geral") 
+   
+taxa_resultados_zero
 
 ```
 
