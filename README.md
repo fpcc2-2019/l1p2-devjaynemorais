@@ -2,6 +2,8 @@
 
 Este repo é a semente para uma análise de padrões de busca e navegação em páginas de projetos da wikimedia (provavelmente wikipedia).
 
+Link para o RPubs: http://rpubs.com/devjaynemorais/l2p2_devjaynemorais
+
 O [exercício original de análise](https://github.com/wikimedia-research/Discovery-Hiring-Analyst-2016) é um problema proposto pela Wikimedia "for candidates applying to be a Data Analyst in the Discovery department at Wikimedia Foundation." O README do projeto original descreve as análises pedidas aos interessados na posição.
 
 ## Mais contexto
