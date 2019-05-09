@@ -1,14 +1,28 @@
 ---
-title: "l1p2_devjaynemorais"
+title: "l2p2_devjaynemorais"
 author: "devjaynemorais"
 date: "30 de abril de 2019"
-output: html_document
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+  html_notebook:
+    code_folding: hide
+    fig_width: 7
+    theme: lumen
+    toc: yes
+    toc_float: yes
+editor_options:
+  chunk_output_type: inline
 ---
 
 ---
 title: "EDA buscas"
 output: html_notebook
 ---
+
+FPCC2 - UFCG - Mestrado 2019.1
+Jayne Morais
 
 O objeto principal da análise são as buscas e a navegação depois da busca. Criamos esses dados a partir dos dados originais da wikimedia em `/data/search_data.csv`. 
 
@@ -25,23 +39,372 @@ theme_set(theme_bw())
 buscas = read_csv(here::here("data/search_data.csv"))
 ```
 
+    Para iniciar o processo de análise dos dados, é importante visualizar o comportamento dos dados conforme: o número de cliques por dia e também por hora (agrupados por Grupo A e B).
+    
 ```{r}
-#options(scipen = 999)
+options(scipen = 999)
 glimpse(buscas)
 
 buscas %>% 
-    ggplot(aes(x = results)) + 
-    geom_histogram(binwidth = 5) 
+    ggplot(aes(x = num_clicks, y = session_start_date)) + 
+    geom_jitter() +
+    labs(
+        title = "Distribuição de cliques por dia",
+        y = "Dia",
+        x = "Nº de cliques" 
+    )
+
+## Variação entre os grupos
+buscas %>% 
+    group_by(group) %>%
+    mutate(dia = floor_date(session_start_date, unit = "hour")) %>% 
+    count(dia) %>% 
+    ggplot(aes(x = dia , y = n, color = group)) + 
+    geom_line() +
+    geom_point() +
+    labs(
+        title = "Distribuição de cliques por dia (agrupados por hora)",
+        y = "Quantidade de Cliques",
+        x = "Ocorrências durante o dia (Hrs)" 
+    )
+
 ```
 
+## Analisando a distribuição dos dados
 
+    Para esta análise não foram contemplados registros de pesquisas que não retornam resultados. Para a realização ds cálculos também não serão contemplados registros que não possuem informação sobre a quantidade de cliques, isto é, NA. A justificativa é que a análise que será realizada é em relação aos cliques ou possibilidade de clique do usuário, logo, uma pesquisa que não retorna resultados, restringe ao usuário a clicar em um resultado, pois esta não retorna possibilidade de clique para o usuário decidir clicar ou não. 
+    Dessa forma, embora existam outras variáveis que devem ser analisadas, o objetivo geral dessa análise é também, entender o comportamento do usuário em relação à busca que o mesmo realizou, isto é, se os resultados são importantes o suficiente para serem "escolhidos" (clicados).
+    A partir dessa análise, com um estudo mais aprofundado (futuro), seria possível analisar se os resultados que a plataforma retorna é o artefato procurado pelo usuário. 
+    Partindo-se do princípio de que se o usuário realizou uma pesquisa, a qual retornou resultados e o usuário não clicou em nenhum destes, logo, este fato poderia ser uma hipótese de que a plataforma não retornou o esperado para ele.
+    Portanto, existem um total de 67951 sessões. Destas, 60005 retornam resultados em buscas realizadas.
+    Para o cálculo das taxas de clickthrough e zero cliques, como também das demais análises, estes dados não serão contabilizados, pois é considerado que em uma pesquisa que não retorna dados, o usuário não poderá clicar.
+
+    Caso do dia 8 de março: A a coleta de dados do mesmo não considerou esse dia por inteiro (até às 20h24min), embora a sua quantidade de sessões assemelha-se ao restante dos demais dias, o que pode ser visto abaixo. Para evitar uma análise enviesada em comparação aos demais dias, este dia não será considerado.
 
 ## Qual é a nossa taxa de clickthrough (taxa de cliques) geral diária? Como isso varia entre os grupos?
+    
+    Para o cálculo da taxa de cliques, primeiramente, será calculada a quantidade total de sessões, que resulta em 67951 sessões.
+    Em ambos os gráficos abaixo, serão listadas apenas sessões que obtiveram pelo menos 1 clique em qualquer uma de suas buscas. Assim como, pesquisas que obtiveram pelo menos 1 resultado retornado, o que resultou em um total de 26392 sessões.
+    Para o cálculo da taxa diária de cliques (clickthrough), será considerada a fração entre a as sessões que obtiveram pelo menos 1 de seus resultados clicados pela quantidade total de sessões.
+    
+```{r}
+glimpse(buscas)
+
+# Para o cálculo da taxa de cliques, primeiramente, será calculada a quantidade total de sessões, que resulta em 67951 sessões.
+
+quantidade_total_sessoes = buscas %>%
+    filter(results > 0, !is.na(num_clicks)) %>%
+    select(session_id) %>%
+    summarise(quantidade_total_sessoes = n_distinct(session_id)) %>%
+    ggplot(aes(x = "" , y = quantidade_total_sessoes)) +
+    geom_col(position = "dodge") +
+   geom_text(aes(x = "", y = quantidade_total_sessoes, label=quantidade_total_sessoes), vjust=1.6, color="white", size=3.5) +
+    labs(
+        title = "Total de Cliques com filtro",
+        y = "Quantidade",
+        x = "Cliques"
+    ) +
+    scale_y_continuous(breaks = seq(from = 0, to = 70000, by = 5000)) 
+
+quantidade_total_sessoes
+
+quantidade_total_sessoes_por_grupo_sem_filtro = buscas %>%
+    select(session_id, group) %>%
+    group_by(group) %>%
+    summarise(quantidade_total_sessoes_sem_filtro = n_distinct(session_id)) %>%
+    ggplot(aes(x = group , y = quantidade_total_sessoes_sem_filtro, fill = group)) +
+    geom_col(position = "dodge") +
+    geom_text(aes(x = group, y = quantidade_total_sessoes_sem_filtro, label=quantidade_total_sessoes_sem_filtro), vjust=1.6, color="black", size=3.5) +
+    labs(
+        title = "Total de sessões (filtro não aplicado)",
+        y = "Quantidade de Sessões",
+        x = "Grupo" 
+    )
+quantidade_total_sessoes_por_grupo_sem_filtro
+
+quantidade_total_sessoes_por_grupo = buscas %>%
+    filter(results > 0, !is.na(num_clicks)) %>%
+    select(session_id, group) %>%
+    group_by(group) %>%
+    summarise(quantidade_total_sessoes_com_filtro = n_distinct(session_id)) %>%
+    ggplot(aes(x = group , y = quantidade_total_sessoes_com_filtro, fill = group)) +
+    geom_col(position = "dodge") +
+    geom_text(aes(x = group, y = quantidade_total_sessoes_com_filtro, label=quantidade_total_sessoes_com_filtro), vjust=1.6, color="black", size=3.5) +
+    labs(
+        title = "Total de sessões (filtro aplicado)",
+        y = "Quantidade de Sessões",
+        x = "Grupo" 
+    )
+quantidade_total_sessoes_por_grupo
+
+
+quantidade_total_sessoes = buscas %>%
+    filter(results > 0, !is.na(num_clicks)) %>%
+    select(session_id) %>%
+    summarise(quantidade_total_sessoes = n_distinct(session_id)) 
+#quantidade_total_sessoes
+
+quantidade_total_sessoes_por_grupo_sem_filtro = buscas %>%
+    select(session_id, group) %>%
+    group_by(group) %>%
+    summarise(quantidade_total_sessoes_sem_filtro = n_distinct(session_id)) 
+#quantidade_total_sessoes_por_grupo_sem_filtro
+
+quantidade_total_sessoes_por_grupo = buscas %>%
+    filter(results > 0, !is.na(num_clicks)) %>%
+    select(session_id, group) %>%
+    group_by(group) %>%
+    summarise(quantidade_total_sessoes_com_filtro = n_distinct(session_id)) 
+#quantidade_total_sessoes_por_grupo
+
+
+# Inclui a data a partir do timestamp
+extracao_dia = buscas %>% 
+    select(session_id, results, num_clicks, session_start_date, group, first_click, session_length, search_index) %>%
+    mutate(dia = floor_date(session_start_date, unit = "day"))
+
+# Inclui a hora a partir do timestamp
+extracao_hora = buscas %>% 
+    select(session_id, results, num_clicks, session_start_date, group, first_click, session_length, search_index) %>%
+    mutate(hora = floor_date(session_start_date, unit = "hour"))
+
+# Realiza-se o agrupamento de dados por sessão, considerando o cálculo da quantidade de cliques e de resultados retornados, ambos por sessão.
+agrupamento_por_sessao_clique_dia = extracao_dia %>%
+    filter(results > 0, !is.na(num_clicks)) %>%
+    select(session_id, results, num_clicks, dia, group) %>%
+    group_by(session_id, dia, group) %>%
+    summarise(cliques_por_sessao = sum(num_clicks),
+              resultados_por_sessao = sum(results))
+
+agrupamento_por_sessao_clique_dia
+
+
+# Agrupa dados do dataframe anterior, realizando a contagem do número de sessões por dia.
+# Observação: Abaixo serão listadas apenas sessões que obtiveram pelo menos 1 clique em qualquer uma de suas buscas. Assim como, pesquisas que obtiveram pelo menos 1 resultado retornado.
+
+sessoes_com_pelo_menos_um_clique = agrupamento_por_sessao_clique_dia %>%
+    filter(cliques_por_sessao > 0, resultados_por_sessao > 0, !is.na(cliques_por_sessao), !is.na(resultados_por_sessao)) %>%
+    group_by(dia) %>%
+    summarise(quantidade_sessoes_com_clique = n(),
+              taxa_clickthrough = (quantidade_sessoes_com_clique/quantidade_total_sessoes$quantidade_total_sessoes)*100)
+
+sessoes_com_pelo_menos_um_clique
+
+
+# Observação: Para o cálculo da taxa diária de cliques (clickthrough), será considerada a fração entre a as sessões que obtiveram pelo menos 1 de seus resultados clicados pela quantidade total de sessões.
+
+# Por dia
+clickthrough_diario = agrupamento_por_sessao_clique_dia %>%
+    filter(cliques_por_sessao > 0, resultados_por_sessao > 0, !is.na(cliques_por_sessao), !is.na(resultados_por_sessao)) %>%
+    group_by(dia) %>%
+    summarise(quantidade_sessoes_com_clique = n(),
+              taxa_clickthrough = (quantidade_sessoes_com_clique/quantidade_total_sessoes$quantidade_total_sessoes)*100) %>%
+    ggplot(aes(x = dia , y = taxa_clickthrough)) +
+    geom_col(position = "dodge") +
+    geom_hline(aes(yintercept = mean(taxa_clickthrough), linetype="Média"), colour="#BB0000") +
+    geom_smooth(aes(x = dia , y = taxa_clickthrough), method = lm, se = FALSE) +
+    geom_text(aes(x = dia, y = taxa_clickthrough, label=paste(round(taxa_clickthrough, digits = 2), "%")), vjust=1.6, color="white", size=3.5) +
+    labs(
+        title = "Taxa de Clickthrough diária",
+        y = "Taxa de Clickthrough (%)",
+        x = "Dia" 
+    ) +
+    scale_y_continuous(breaks = seq(from = 0, to = 1000, by = 0.5)) 
+
+clickthrough_diario
+
+# Por grupo
+clickthrough_diario_por_grupo = agrupamento_por_sessao_clique_dia %>%
+    filter(cliques_por_sessao > 0, resultados_por_sessao > 0, !is.na(cliques_por_sessao), !is.na(resultados_por_sessao)) %>%
+    group_by(dia, group) %>%
+    summarise(quantidade_sessoes_com_clique = n(),
+              taxa_clickthrough = (quantidade_sessoes_com_clique/quantidade_total_sessoes$quantidade_total_sessoes)*100) %>%
+    ggplot(aes(x = dia , y = taxa_clickthrough, fill = group)) +
+    geom_col(position = "dodge") +
+    geom_hline(aes(yintercept = mean(taxa_clickthrough), linetype="Média"), colour="#BB0000") +
+    geom_smooth(aes(x = dia , y = taxa_clickthrough), method = lm, se = FALSE) +
+    geom_text(aes(x = dia, y = taxa_clickthrough, label=paste(round(taxa_clickthrough, digits = 2), "%")), vjust=1.6, color="black", size=3.5) +
+    labs(
+        title = "Taxa de Clickthrough diária por Grupo",
+        y = "Taxa de Clickthrough (%)",
+        x = "Dia" 
+    ) +
+    scale_y_continuous(breaks = seq(from = 0, to = 1000, by = 0.5)) 
+
+clickthrough_diario_por_grupo
+
+
+```
+
+### Considerações
+    
+    O grupo A possui 27966 sessões, enquanto o grupo B possui 32039 sessões. Ao considerar essa informação, podemos afirmar que mesmo o grupo B possuindo mais sessões do que o grupo A, o grupo B ainda assim possui uma taxa de cliques (clickthrough) menor que o grupo A.
+    No geral, a taxa de clickthrough apresenta um descrescimento durante esse intervalo de dias e uma média em torno de 5.5%.
+    O grupo A apresenta as maiores taxas de clickthrough em relação ao grupo B em todos os dias analisados.
+    Apesar dos valores das taxas do grupo B serem maiores que as taxas do grupo A, o grupo B representa um crescimento crescente, enquanto o grupo A representa um crescimento decrescente. 
+    As taxas mais baixa e mais alta para o grupo A é tida no dia 05/03 e 02/03, respectivamente.
+    As taxas mais baixa e mais alta para o grupo B é tida no dia 01/03 e 07/03, respectivamente.
+
 
 ## Quais resultados as pessoas tendem a tentar primeiro? Como isso muda no dia-a-dia?
 
+    Para a análise foi considerada a soma da quantidade de cliques por posição do resultado da busca encontrado.
+    Como também, a fins de evitar enviesamento dos dados, serão desconsiderados as buscas que não retornaram resultados, valores que não possuem informação sobre o primeiro clique.
+    Para uma melhor visualização, foi mostrada as primeiras 100 posições de resultados retornados, que contém 39860 ocorrências, enquanto posições acima de 100 contabilizam apenas 132 ocorrências..
+    Para esse cálculo foram desconsiderados, os registro que não possuem informações sobre qual posição ocorreu o primeiro clique, assim como aqueles que não possuem cliques. E, também buscas que não foram retornados resultados.
+    
+```{r}
+primeiros_cliques = buscas %>% 
+    filter(results > 0, !is.na(num_clicks), !is.na(first_click), first_click <= 100) %>%
+    ggplot(aes(x = first_click, fill = group)) + 
+    geom_histogram(binwidth = 1) +
+    geom_rug(alpha = .2, color = "blue") + 
+    scale_y_log10() +
+   # abline(h=quantile(primeiros_cliques,0.25),col="red",lty=2) +
+    #geom_vline(xintercept = quantile(first_click,  prob = seq(0, 1, length = 11))) + 
+    #geom_vline(xintercept = quantile(first_click, 0.75)[[1]]) +
+    labs(x = "Posição do resultado no primeiro clique", 
+         y = "Quantidade de ocorrências", 
+         title = "Distribuição dos primeiros cliques dos usuários") 
+
+primeiros_cliques
+
+
+primeiros_cliques_soma = extracao_dia %>% 
+    filter(results > 0, !is.na(num_clicks), !is.na(first_click), first_click <= 100) %>%
+    group_by(first_click) %>%
+    summarise(quantidade_cliques = sum(num_clicks)) 
+primeiros_cliques_soma
+
+
+primeiros_cliques_acima_100 = extracao_dia %>% 
+    filter(results > 0, !is.na(num_clicks), !is.na(first_click), first_click > 100) %>%
+    summarise(quantidade_cliques = sum(num_clicks)) 
+primeiros_cliques_acima_100
+
+primeiros_cliques_abaixo_100 = extracao_dia %>% 
+    filter(results > 0, !is.na(num_clicks), !is.na(first_click), first_click <= 100) %>%
+    summarise(quantidade_cliques = sum(num_clicks)) 
+primeiros_cliques_abaixo_100
+
+quantidade_cliques_geral = primeiros_cliques_soma %>%
+    summarise(soma = sum(quantidade_cliques))
+quantidade_cliques_geral
+
+primeiros_cliques_dia = extracao_dia %>% 
+    filter(results > 0, !is.na(num_clicks), !is.na(first_click), first_click <= 50) %>%
+    group_by(dia) %>%
+    ggplot(aes(x = dia, y = first_click)) + 
+    geom_jitter(alpha = .2) +
+    #geom_boxplot() +
+    geom_rug(alpha = .2, color = "blue") + 
+    labs(x = "Dia", y = "Posição dos primeiros cliques", 
+         title = "Distribuição dos primeiros cliques dos usuários")
+
+primeiros_cliques_dia
+
+
+```
+
+### Considerações:
+    
+    Pode ser observado no gráfico que as primeiras posições em que os resultados de pesquisa são exibidos, são as posições que que os usuários tendem a realizar mais cliques.
+
+
 ## Qual é a nossa taxa de resultados zero no geral? Como isso varia entre os grupos?
 
+    Abaixo serão listadas apenas sessões que obtiveram nenhum clique em qualquer uma de suas buscas. Assim como, pesquisas que obtiveram pelo menos 1 resultado retornado, que resulta em 26390 sessões.
+    
+
+```{r}
+
+# Observação: Abaixo serão listadas apenas sessões que obtiveram nenhum clique em qualquer uma de suas buscas. Assim como, pesquisas que obtiveram pelo menos 1 resultado retornado.
+
+agrupamento_por_sessao_clique_dia = extracao_dia %>%
+    filter(results > 0, !is.na(num_clicks)) %>%
+    select(session_id, results, num_clicks, dia, group) %>%
+    group_by(session_id, dia, group) %>%
+    summarise(cliques_por_sessao = sum(num_clicks),
+              resultados_por_sessao = sum(results))
+
+agrupamento_por_sessao_clique_dia
+
+sessoes_com_nenhum_clique = agrupamento_por_sessao_clique_dia %>%
+    filter( cliques_por_sessao > 0, resultados_por_sessao > 0, !is.na(cliques_por_sessao), !is.na(resultados_por_sessao)) %>%
+    group_by(group) %>%
+    summarise(quantidade_sessoes_sem_clique = n())
+
+sessoes_com_nenhum_clique
+
+# Observação: Para o cálculo da taxa diária de sessões que não obtiveram cliques em seus resultados, será considerada a fração entre a as sessões que obtiveram nenhum de seus resultados clicados pela quantidade total de sessões.
+
+# Geral
+zero_geral = sessoes_com_nenhum_clique %>%
+    summarise(sessoes_sem_clique = sum(quantidade_sessoes_sem_clique))
+zero_geral
+
+calculo_zero_geral = zero_geral %>%
+    summarise(total_sessoes_sem_clique = sum(sessoes_sem_clique), taxa_zero = (total_sessoes_sem_clique/quantidade_total_sessoes$quantidade_total_sessoes)*100) %>%
+    ggplot(aes(x = "" , y = taxa_zero)) +
+    geom_col(position = "dodge") +
+    geom_text(aes(x = "", y = taxa_zero, label=paste(round(taxa_zero, digits = 2), "%")), vjust=1.6, color="white", size=3.5) +
+    labs(
+        title = "Taxa de nenhum clique geral",
+        y = "Taxa de zero cliques (%)",
+        x = "Sessões sem cliques"
+    ) +
+    scale_y_continuous(breaks = seq(from = 0, to = 100, by = 5)) 
+
+calculo_zero_geral
+
+# Geral por grupo
+zero_geral = sessoes_com_nenhum_clique %>%
+    group_by(group) %>%
+    summarise(total_sessoes_sem_clique = sum(quantidade_sessoes_sem_clique) ,
+              taxa_zero = (total_sessoes_sem_clique/quantidade_total_sessoes$quantidade_total_sessoes)*100) %>%
+    ggplot(aes(x = group , y = taxa_zero, fill = group)) +
+    geom_col(position = "dodge") +
+    geom_text(aes(x = group, y = taxa_zero, label=paste(round(taxa_zero, digits = 2), "%")), vjust=1.6, color="black", size=3.5) +
+    labs(
+        title = "Taxa de nenhum clique por grupo",
+        y = "Taxa de zero cliques (%)",
+        x = "Grupo"
+    ) +
+    scale_y_continuous(breaks = seq(from = 0, to = 100, by = 5)) 
+
+zero_geral
+
+
+```
+
+### Considerações
+
+    A taxa de zero cliques do grupo A é maior que o grupo B, no entanto, o grupo B possui 6687 sessões que não obtiveram cliques, enquanto o grupo A tem apenas 19703 Portanto, mesmo o grupo B tendo um maior número de sessões sem cliques, ainda assim, representa uma menor porcetagem em relação ao grupo A.
+    
 ## A duração da sessão é aproximadamente o tempo entre o primeiro e o último evento de uma sessão. Escolha uma variável do conjunto de dados e descreva sua relação com o tamanho da sessão. Visualize o relacionamento.
 
-## Resuma suas descobertas em um resumo executivo.
+    Utilizou-se a variável `session_length` para corresponder ao tamanho da sessão para realizar uma análise    por grupo.
+    
+```{r}
+
+# Será utilizado a variável `session_length` para corresponder ao tamanho da sessão para realizar uma análise por grupo.
+
+tamanho_sessao = extracao_hora %>%
+    select(group, session_length) %>%
+    ggplot(aes(x = group , y = session_length, fill = group)) +
+    geom_boxplot() +
+    scale_y_log10() +
+    labs(
+        title = "Relaçao entre o tamanho da sessão e o grupo",
+        y = "Tamanho da sessão",
+        x = "Grupo" 
+    )
+    
+tamanho_sessao
+
+
+```
+
+### Considerações
+
+    Pode-se observar que as sessões do grupo A tendem a durar mais tempo do que as sessões do grupo B, embora o grupo B tenha mais sessões do que o grupo A. Uma hipótese a ser considerada, nesse caso, é o fato de que as sessões do grupo A, serem pesquisas mais aprofundadas/específicas (não esporádica) do que a do grupo B, embora o grupo A possui uma taxa de zero cliques maior que o grupo B.
